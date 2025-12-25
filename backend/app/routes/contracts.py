@@ -2,12 +2,14 @@
 Contract analysis API routes.
 """
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from typing import Optional
+import uuid
 
 from app.services.contract_service import analyze_contract, generate_negotiation_email
-from app.storage import save_analysis, get_analysis, list_analyses
 
 router = APIRouter()
+
+# In-memory storage for serverless (temporary, clears on cold start)
+_temp_storage: dict = {}
 
 
 @router.post("/analyze")
@@ -48,8 +50,10 @@ async def analyze_contract_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     
-    # Save to local storage
-    analysis_id = save_analysis(analysis)
+    # Store in memory temporarily
+    analysis_id = str(uuid.uuid4())
+    analysis["id"] = analysis_id
+    _temp_storage[analysis_id] = analysis
     
     return {
         "id": analysis_id,
@@ -82,7 +86,10 @@ async def analyze_text_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     
-    analysis_id = save_analysis(analysis)
+    # Store in memory temporarily
+    analysis_id = str(uuid.uuid4())
+    analysis["id"] = analysis_id
+    _temp_storage[analysis_id] = analysis
     
     return {
         "id": analysis_id,
@@ -93,27 +100,21 @@ async def analyze_text_endpoint(
 @router.get("/{analysis_id}")
 async def get_analysis_endpoint(analysis_id: str):
     """Get a saved analysis by ID."""
-    analysis = get_analysis(analysis_id)
+    analysis = _temp_storage.get(analysis_id)
     
     if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+        raise HTTPException(status_code=404, detail="Analysis not found or expired")
     
     return analysis
-
-
-@router.get("/")
-async def list_analyses_endpoint():
-    """List all saved analyses."""
-    return list_analyses()
 
 
 @router.post("/{analysis_id}/generate-email")
 async def generate_email_endpoint(analysis_id: str):
     """Generate a negotiation email based on the analysis."""
-    analysis = get_analysis(analysis_id)
+    analysis = _temp_storage.get(analysis_id)
     
     if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+        raise HTTPException(status_code=404, detail="Analysis not found or expired")
     
     try:
         email = await generate_negotiation_email(analysis)
