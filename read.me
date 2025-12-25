@@ -1,0 +1,90 @@
+# Influract 🔍
+
+**Contract Analyzer for Content Creators** - Stop getting screwed by brand deals.
+
+Upload your contract → Get traffic light risk scores → Get copy-paste negotiation language.
+
+## Features
+
+- 🚦 **Traffic Light Scoring** - Green (safe), Yellow (negotiate), Red (high risk)
+- 💬 **Plain English Explanations** - Legal jargon translated to creator-speak
+- ✉️ **Negotiation Email Generator** - One-click generate pushback to send the brand
+- 📄 **Multi-format Support** - PDF, DOCX, or paste text directly
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 + TypeScript + TailwindCSS (Neo Brutalism design)
+- **Backend**: FastAPI + Python
+- **AI**: Gemini 2.5 Flash for clause analysis
+- **Storage**: Local JSON files (no database required)
+
+## Quick Start
+
+### 1. Backend
+
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Mac/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy env file and add your Gemini API key
+copy env.txt .env  # Windows
+# cp env.txt .env  # Mac/Linux
+
+# Start server
+uvicorn app.main:app --reload --port 8001
+```
+
+### 2. Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Copy env file
+copy env.txt .env.local  # Windows
+# cp env.txt .env.local  # Mac/Linux
+
+# Start dev server
+npm run dev
+```
+
+Open http://localhost:3000 and start analyzing contracts!
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/contracts/analyze` | Upload file for analysis |
+| POST | `/api/contracts/analyze-text` | Analyze pasted text |
+| GET | `/api/contracts/{id}` | Get analysis results |
+| POST | `/api/contracts/{id}/generate-email` | Generate negotiation email |
+
+## Clause Detection
+
+Influract detects and scores these common creator contract clauses:
+
+- **Exclusivity** - Duration, category scope, competitor definition
+- **Usage Rights** - Paid ads, perpetuity, territory, platforms
+- **IP Ownership** - Transfer vs license, derivative rights
+- **Payment Terms** - Approval-based, net terms, milestones
+- **Revisions** - Limits, extra fees for overages
+- **Termination** - Kill fee, notice period
+- **Auto-Renewal** - Opt-out requirements
+- **Deliverables** - Ambiguity/vagueness
+
+## Disclaimer
+
+⚠️ **Influract is not legal advice.** Always consult a qualified attorney for binding legal decisions.
+
+---
+
+Built with ❤️ for creators who deserve fair deals.
