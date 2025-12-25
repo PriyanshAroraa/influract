@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from mangum import Mangum
 
 from app.config import get_settings
 from app.routes import contracts
@@ -13,18 +15,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - allow all origins for serverless
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.frontend_url,
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://influract.vercel.app",
-        "https://frontend-jrnzjc53s-priyansharora1804-gmailcoms-projects.vercel.app",
-        "https://frontend-bww9a5p88-priyansharora1804-gmailcoms-projects.vercel.app",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,3 +42,20 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Handle OPTIONS preflight requests
+@app.options("/{path:path}")
+async def options_handler(request: Request):
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
+    )
+
+
+# Vercel serverless handler
+handler = Mangum(app, lifespan="off")
