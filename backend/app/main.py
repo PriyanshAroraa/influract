@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from mangum import Mangum
 
 from app.config import get_settings
 from app.routes import contracts
@@ -55,7 +54,3 @@ async def options_handler(request: Request):
             "Access-Control-Allow-Headers": "Content-Type, Authorization",
         }
     )
-
-
-# Vercel serverless handler
-handler = Mangum(app, lifespan="off")
