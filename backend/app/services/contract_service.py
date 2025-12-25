@@ -4,7 +4,8 @@ Extracts text from contracts and analyzes clauses for creator risks.
 """
 import io
 import re
-from typing import Dict, Any, Optional
+import json
+from typing import Dict, Any
 import google.generativeai as genai
 from docx import Document
 
@@ -17,19 +18,16 @@ genai.configure(api_key=settings.gemini_api_key)
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Extract text from PDF using PyMuPDF."""
-    import fitz  # PyMuPDF
-    
-    text = ""
+    """Extract text from PDF using pypdf (pure Python, serverless compatible)."""
     try:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
-        for page in doc:
-            text += page.get_text()
-        doc.close()
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(file_bytes))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        return text
     except Exception as e:
         raise ValueError(f"Failed to extract text from PDF: {str(e)}")
-    
-    return text
 
 
 def extract_text_from_docx(file_bytes: bytes) -> str:
@@ -145,13 +143,9 @@ async def analyze_contract(
         response_text = re.sub(r'\s*```$', '', response_text)
     
     try:
-        analysis = eval(response_text)  # Using eval since Gemini returns proper Python dict-like JSON
-    except:
-        import json
-        try:
-            analysis = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse Gemini response: {str(e)}")
+        analysis = json.loads(response_text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse Gemini response: {str(e)}")
     
     # Add metadata
     analysis["filename"] = filename
@@ -178,8 +172,6 @@ Write ONLY the email body (no subject line). Keep it under 200 words. Be profess
 
 async def generate_negotiation_email(analysis: Dict[str, Any]) -> str:
     """Generate a negotiation email based on contract analysis."""
-    import json
-    
     # Filter to only include concerning clauses
     concerning_clauses = [
         c for c in analysis.get("clauses", [])
