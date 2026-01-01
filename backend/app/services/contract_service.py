@@ -58,7 +58,20 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
 
 ANALYSIS_PROMPT = """You are a contract analysis expert helping content creators understand influencer/brand collaboration contracts. 
 
-Analyze this contract and identify risky clauses. For each clause found, determine:
+FIRST: Determine if this document is actually a contract, deal, agreement, or business proposal. A contract/deal should contain things like:
+- Legal terms, obligations, or agreements between parties
+- Payment terms, deliverables, timelines
+- Rights, licenses, exclusivity clauses
+- Signatures or signature blocks
+- Business collaboration terms
+
+If this document is NOT a contract, deal, agreement, or business proposal (for example: a random article, homework, recipe, resume, memes, lyrics, personal notes, etc.), respond with this exact JSON:
+{{
+  "not_a_contract": true,
+  "document_type": "<what type of document this appears to be>"
+}}
+
+If it IS a contract/deal, analyze it and identify risky clauses. For each clause found, determine:
 1. The clause type (exclusivity, usage_rights, ip_ownership, payment_terms, revisions, termination, auto_renewal, deliverables)
 2. Risk level: "green" (safe/standard), "yellow" (vague/negotiable), or "red" (high-risk)
 3. Plain English explanation (talk like you're explaining to a friend, not a lawyer)
@@ -146,6 +159,26 @@ async def analyze_contract(
         analysis = json.loads(response_text)
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse Gemini response: {str(e)}")
+    
+    # Check if this is not a contract - return funny prank response
+    if analysis.get("not_a_contract"):
+        doc_type = analysis.get("document_type", "random document")
+        funny_messages = [
+            f"Nice try! 🎭 You uploaded a {doc_type}... try pranking me next time. Pls give me an actual contract, bestie!",
+            f"Uhh... this looks like a {doc_type}? I'm a contract analyzer, not a fortune teller! 🔮 Send me a real deal!",
+            f"Lmao you really thought I wouldn't notice this is just a {doc_type}? 😂 Give me a contract or go home!",
+            f"Bruh. This is a {doc_type}. I analyze CONTRACTS. You know, the legal stuff? Try again! 📜",
+            f"Error 404: Contract not found. Found: {doc_type}. Try pranking me next time! 🤡"
+        ]
+        import random
+        return {
+            "not_a_contract": True,
+            "prank_detected": True,
+            "document_type": doc_type,
+            "message": random.choice(funny_messages),
+            "filename": filename,
+            "suggestion": "Upload a real contract, deal, or agreement and I'll help you spot the red flags! 🚩"
+        }
     
     # Add metadata
     analysis["filename"] = filename

@@ -1,19 +1,26 @@
 """
 Contract analysis API routes.
 """
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 import uuid
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.services.contract_service import analyze_contract, generate_negotiation_email
 
 router = APIRouter()
+
+# Rate limiter for this router - 10 requests per hour per IP
+limiter = Limiter(key_func=get_remote_address)
 
 # In-memory storage for serverless (temporary, clears on cold start)
 _temp_storage: dict = {}
 
 
 @router.post("/analyze")
+@limiter.limit("10/hour")
 async def analyze_contract_endpoint(
+    request: Request,
     file: UploadFile = File(...),
     country: str = Form(default="United States")
 ):
@@ -62,7 +69,9 @@ async def analyze_contract_endpoint(
 
 
 @router.post("/analyze-text")
+@limiter.limit("10/hour")
 async def analyze_text_endpoint(
+    request: Request,
     text: str = Form(...),
     country: str = Form(default="United States")
 ):
